@@ -1,0 +1,13 @@
+/dist/
+/build/
+/.deps/
+*.log
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.env.*
+*.elf
+*.bin
+*.prx
+*.zip
