@@ -66,6 +66,8 @@ Outputs:
 - `dist/AuroraClock-PS5.zip` — title-directory archive, **not a Sony retail PKG**.
 - `dist/SHA256.json` — checksums of the packaged app files.
 
+Each successful build replaces its generated `dist/<titleId>/` directory rather than merging into it, so removed modules/assets cannot survive a rebuild. Do not store hand-maintained files there. `SHA256.json` describes the files inside that title directory; the ZIP contains the same files.
+
 The kit rebuilds/validates its GPL clean-room `sce_module/libc.prx` loader companion; it is not copied from a game or Sony SDK. Its pinned SHA-256 is `e6ff45d16adf687855cc3b33b0c8a4132b6504360b221e0a34c7e99fb3ba0036`. This module is not a complete libc: do not assume an exported API has full semantics merely because linking succeeds.
 
 The build does not connect to or install anything on a console.
@@ -78,7 +80,7 @@ The build does not connect to or install anything on a console.
 4. Use your loader's documented scan/registration flow, then launch **Aurora Clock** from Games.
 5. Verify the clock and moving background; close with Circle or Options.
 
-This project does not install or configure ShadowMountPlus. Do not copy files over system libraries, change jailbreak settings, or delete download containers to install it. `/user/download` and `download0.dat` are not cleanup targets.
+This project does not install or configure ShadowMountPlus. Do not copy files over system libraries, change jailbreak settings, or delete system-managed download containers to install it.
 
 ## Code map
 
@@ -118,3 +120,29 @@ python3 tools/build_native.py --source-zip
 This needs only Python and creates `dist/AuroraClock-Source.zip` from an explicit allowlist. It excludes generated executables, console logs, previews from experiments, and local configuration. It includes the documented preview image and vendored font/header. The separately pinned native kit is still required to build.
 
 Application code is **GPL-3.0-or-later**, with retained upstream notices. The font is OFL-1.1; `stb_truetype` is used under its MIT option. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Before distributing compiled packages, provide the applicable corresponding source/build inputs, including the public kit and dependencies; this source ZIP alone is not the complete corresponding source of every bundled runtime component.
+
+## Contributing
+
+Keep changes focused on the standalone clock proof of concept. Explain the problem, reproduction steps, and verification in your pull request. Preserve existing copyright notices and identify the license and origin of any new dependency or asset.
+
+For build failures, include the host OS/architecture, compiler versions, kit revision, command, and relevant error output. For console behavior, include firmware and loader versions and whether the app launched, rendered, and exited. Redact account information, console addresses, and personal paths from logs. Do not submit proprietary SDK files, firmware, keys, game files, or console dumps.
+
+Renderer changes can be exercised on a desktop: generate `font_data.h` with `tools/embed_font.py`, then compile `scene.c` and a small caller using the repository and generated-header include paths, standard C11, and libm. Check time/date transitions, animation, resizing, and padded framebuffer strides; AddressSanitizer and UndefinedBehaviorSanitizer are useful here. Native lifecycle/display/controller changes additionally need a controlled test on a compatible console—desktop rendering and a successful cross-build cannot establish hardware safety.
+
+## Release checks
+
+Prefer a **source-only first release**. Publish the repository or `dist/AuroraClock-Source.zip`, retaining `LICENSE`, `THIRD_PARTY_NOTICES.md`, `assets/OFL.txt`, and the vendor header's embedded license. Generated artifacts stay out of Git. Before attaching binaries, assemble the applicable corresponding source and notices for the kit, SDK components, and bundled runtime as well.
+
+Before releasing:
+
+1. Build using the pinned kit and documented toolchain.
+2. Confirm the title directory, native ZIP, and checksum receipt agree and contain no obsolete files.
+3. Generate the source ZIP and check its contents for credentials, private configuration, logs, and generated binaries.
+4. Record what was actually tested, separating desktop/build checks from console compatibility. Do not claim support for untested firmware or loaders.
+
+Local release review on 2026-11-24:
+
+- Native cross-build and the kit's signed-container integrity checks passed on Apple Silicon macOS with Clang 18.
+- A rebuild removed an intentionally seeded obsolete output file; the title directory, ZIP contents, and SHA-256 receipt matched.
+- A temporary desktop harness exercised the real renderer under AddressSanitizer and UndefinedBehaviorSanitizer: deterministic redraws, minute/date changes, animation, resizing between landscape/portrait/1×1 and 1920×1080, padded strides, buffer guards, and rejected invalid inputs. No sanitizer errors were reported; the rendered 1080p clock was visually inspected.
+- No console was contacted or retested during this review. Earlier console observations in “Scope and status” remain the only hardware evidence.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Embed the bundled OFL font so the executable needs no runtime assets."""
 import argparse
 from pathlib import Path

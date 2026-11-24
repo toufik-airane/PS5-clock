@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Build the standalone native clock with the public native app kit; never deploy."""
 import argparse
 import hashlib
@@ -134,7 +135,14 @@ def build(args):
     title = json.loads((ROOT / 'sce_sys/param.json').read_text(encoding='utf-8'))['titleId']
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    shutil.copytree(kit / 'dist' / title, dist / title, dirs_exist_ok=True)
+    # Stage the complete title before replacing generated output. Merging can
+    # retain obsolete modules/assets and disagree with the freshly built ZIP.
+    with tempfile.TemporaryDirectory(prefix='.aurora-export-', dir=dist) as directory:
+        staged_title = Path(directory) / title
+        shutil.copytree(kit / 'dist' / title, staged_title)
+        if (dist / title).exists():
+            shutil.rmtree(dist / title)
+        staged_title.rename(dist / title)
     shutil.copy2(kit / 'dist' / (title + '.zip'), dist / 'AuroraClock-PS5.zip')
     receipt = {str(p.relative_to(dist / title)): hashlib.sha256(p.read_bytes()).hexdigest()
                for p in sorted((dist / title).rglob('*')) if p.is_file()}
